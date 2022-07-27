@@ -210,14 +210,21 @@ class Customer(Person):
             filter(lambda item: item["showId"] == booking.bookedShow.showId, shows))
         idx = shows.index(show[0])
         shows[idx]["availableSeats"] -= 1
-        customer = list(
+        booking2 = list(
             filter(lambda item: item["customerName"].userId == self.userId, bookings))
-        idx = bookings.index(customer[0])
+        idx = bookings.index(booking2[0])
         customers[idx]["bookings"].append(booking.bookingId)
+        bookings[idx]["bookings"] = BookingStatus.CONFIRMED
+
+    def cancelBooking(self, booking):
+        booking2 = list(
+            filter(lambda item: item["bookingId"] == booking.bookingId, bookings))
+        idx = bookings.index(booking2[0])
+        customers[idx]["bookings"] = BookingStatus.CANCELLED
 
     def getBooking(self) -> List[any]:
         res = list(
-            filter(lambda item: item["customerName"].name == self.name, bookings))
+            filter(lambda item: item["customerName"].userId == self.userId, bookings))
         return res
 
 
@@ -248,13 +255,16 @@ class Booking:
         bookings.append(newBooking)
 
     def makePayment(self, paymentObj: Payment) -> bool:
-        newPayment = {
-            "amount": paymentObj.amount,
-            "date": paymentObj.date,
-            "transactionId": paymentObj.transactionId
-        }
-        payments.append(newPayment)
-
+        try:
+            newPayment = {
+                "amount": paymentObj.amount,
+                "date": paymentObj.date,
+                "transactionId": paymentObj.transactionId
+            }
+            payments.append(newPayment)
+            return True
+        except:
+            return False
     def __repr__(self) -> str:
         return "Name: {}, Mobile: {}, Show Details:-> Movie Name: {} Show Time: {}, Booking Status: {}, Amount: {}".format(
             self.customerName.name, self.customerName.mobile, self.bookedShow.movieName.title, self.bookedShow.showTime,
@@ -298,8 +308,15 @@ if __name__ == '__main__':
     payObj2 = Payment(450.00, datetime.now(), '202207270940sudhir512')
     booking2 = Booking(bookingCount := bookingCount+1, show1, datetime.now(),
                        sudhir, BookingStatus.REQUESTED, 450.00, seat1, payObj2)
-    sudhir.makeBooking(booking1)
-    booking1.makePayment(payObj1)
+    booking1Payment = booking1.makePayment(payObj1)
+    if booking1Payment:
+        sudhir.makeBooking(booking1)
+    else:
+        sudhir.cancelBooking(booking1)
+    booking2Payment = booking1.makePayment(payObj2)
+    if booking2Payment:
+        sudhir.makeBooking(booking2)
+    else:
+        sudhir.cancelBooking(booking2)
     sudhir.makeBooking(booking2)
-    booking1.makePayment(payObj2)
     print(sudhir.getBooking())
